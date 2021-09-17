@@ -3,6 +3,7 @@
 namespace WebChemistry\ConsoleArguments;
 
 use WebChemistry\ConsoleArguments\Attribute\Argument;
+use WebChemistry\ConsoleArguments\Attribute\DefaultProvider;
 use WebChemistry\ConsoleArguments\Attribute\Description;
 use WebChemistry\ConsoleArguments\Result\CommandResult;
 use WebChemistry\ConsoleArguments\Result\OptionResult;
@@ -42,10 +43,12 @@ final class ConsoleObjectConfigurationParser
 		} catch (ValidationException $exception) {
 			foreach ($exception->getMessageObjects() as $object) {
 				$name = $object->path[0];
+				$option = $result->options[$name];
 				$output->writeln(
 					sprintf(
-						'<error>Option --%s expects to be %s, %s given.</error>',
-						$result->options[$name]->name,
+						'<error>%s%s expects to be %s, %s given.</error>',
+						$option->argument ? 'Argument ' : 'Option --',
+						$option->name,
 						$object->variables['expected'],
 						(string) $object->variables['value'],
 					)
@@ -69,20 +72,22 @@ final class ConsoleObjectConfigurationParser
 		$command->setDescription((string) $result->description);
 
 		foreach ($result->options as $option) {
-			$default = $option->default;
-
-			if ($option->type === 'bool') {
-				$default = null;
-				$mode = InputOption::VALUE_NONE;
+			if (!$option->argument) {
+				$command->addOption(
+					$option->name,
+					null,
+					$option->getOptionMode(),
+					(string) $option->description,
+					$option->getDefault(),
+				);
 			} else {
-				$mode = InputOption::VALUE_REQUIRED;
+				$command->addArgument(
+					$option->name,
+					$option->getArgumentMode(),
+					(string) $option->description,
+					$option->getDefault(),
+				);
 			}
-
-			if ($option->type === 'array') {
-				$mode |= InputOption::VALUE_IS_ARRAY;
-			}
-
-			$command->addOption($option->name, null, $mode, (string) $option->description, $default);
 		}
 	}
 
@@ -95,14 +100,10 @@ final class ConsoleObjectConfigurationParser
 		$values = [];
 
 		foreach ($result->options as $option) {
-			if ($input->hasOption($option->name)) {
-				$values[$option->property] = $input->getOption($option->name);
+			if ($option->isset($input)) {
+				$values[$option->property] = $option->get($input);
 			}
 		}
-
-//		foreach ($result->arguments as $argument) {
-//			$values[$argument->property] = $input->getArgument($argument->name);
-//		}
 
 		return $values;
 	}
@@ -116,14 +117,14 @@ final class ConsoleObjectConfigurationParser
 		$result = $this->getCommandResult();
 
 		foreach ($result->options as $option) {
-			if (!$input->hasOption($option->name)) {
+			if (!$option->isset($input)) {
 				continue;
 			}
 
 			if ($option->type === 'int') {
 				$type = Expect::type('numericint')->castTo('int');
 
-				if ($option->allowsNull && $input->getOption($option->name) === null) {
+				if ($option->allowsNull && $option->get($input) === null) {
 					// hack
 					$type = Expect::type('null');
 				}
@@ -164,22 +165,45 @@ final class ConsoleObjectConfigurationParser
 				);
 			}
 
-			if (!$this->hasAttribute($property, Argument::class)) {
-				$option = $commandResult->options[$property->getName()] = new OptionResult();
-				$option->name = preg_replace_callback(
-					'#([A-Z])#',
-					fn (array $matches) => '-' . strtolower($matches[1]),
-					$property->getName(),
-				);
-				$option->description = $this->getDescription($property);
-				$option->property = $property->getName();
-				$option->default = $property->hasDefaultValue() ? $property->getDefaultValue() : null;
-				$option->type = $type->getName();
-				$option->allowsNull = $type->allowsNull();
-			}
+			$option = $commandResult->options[$property->getName()] = new OptionResult();
+			$option->name = preg_replace_callback(
+				'#([A-Z])#',
+				fn (array $matches) => '-' . strtolower($matches[1]),
+				$property->getName(),
+			);
+			$option->description = $this->getDescription($property);
+			$option->property = $property->getName();
+			$option->default = $this->getDefaultValue($property);
+			$option->type = $type->getName();
+			$option->allowsNull = $type->allowsNull();
+			$option->argument = $this->hasAttribute($property, Argument::class);
 		}
 
 		return $commandResult;
+	}
+
+	private function getDefaultValue(ReflectionProperty $property): mixed
+	{
+		$default = $this->getAttribute($property, DefaultProvider::class);
+		if ($default) {
+			$class = $property->getDeclaringClass();
+			if (!$class->hasMethod($default->method)) {
+				throw new LogicException(
+					sprintf('%s::%s() method does not exist.', $class->getName(), $default->method)
+				);
+			}
+
+			$method = $class->getMethod($default->method);
+			if (!$method->isStatic() || !$method->isPublic()) {
+				throw new LogicException(
+					sprintf('%s::%s() method must be static and public.', $class->getName(), $default->method)
+				);
+			}
+
+			return $method->invoke(null);
+		}
+
+		return $property->hasDefaultValue() ? $property->getDefaultValue() : null;
 	}
 
 	private function getDescription(ReflectionClass|ReflectionProperty $reflection): ?string

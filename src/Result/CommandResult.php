@@ -10,7 +10,4 @@ final class CommandResult
 	/** @var OptionResult[] */
 	public array $options = [];
 
-	/** @var ArgumentResult[] */
-	public array $arguments = [];
-
 }
