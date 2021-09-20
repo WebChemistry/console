@@ -62,11 +62,22 @@ abstract class BaseCommand extends Command
 		$this->input = $input;
 		$this->output = $output;
 
-		$this->exec();
-
-		unset($this->input, $this->output);
+		try {
+			$this->exec();
+		} catch (TerminateCommandException $e) {
+			return $e->success ? self::SUCCESS : self::FAILURE;
+		} finally {
+			unset($this->input, $this->output);
+		}
 
 		return self::SUCCESS;
+	}
+
+	protected function error(string $message): void
+	{
+		$this->output->writeln(sprintf('<error>Error: %s</error>', $message));
+
+		throw new TerminateCommandException();
 	}
 
 	abstract protected function exec();
