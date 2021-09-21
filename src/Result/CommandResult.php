@@ -2,6 +2,8 @@
 
 namespace WebChemistry\ConsoleArguments\Result;
 
+use ReflectionClass;
+
 final class CommandResult
 {
 
@@ -9,5 +11,7 @@ final class CommandResult
 
 	/** @var OptionResult[] */
 	public array $options = [];
+
+	public ReflectionClass $reflection;
 
 }

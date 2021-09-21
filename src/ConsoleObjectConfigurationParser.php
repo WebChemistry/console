@@ -5,6 +5,8 @@ namespace WebChemistry\ConsoleArguments;
 use WebChemistry\ConsoleArguments\Attribute\Argument;
 use WebChemistry\ConsoleArguments\Attribute\DefaultProvider;
 use WebChemistry\ConsoleArguments\Attribute\Description;
+use WebChemistry\ConsoleArguments\Extension\DefaultValuesProviderInterface;
+use WebChemistry\ConsoleArguments\Extension\ValidateObjectInterface;
 use WebChemistry\ConsoleArguments\Result\CommandResult;
 use WebChemistry\ConsoleArguments\Result\OptionResult;
 use LogicException;
@@ -58,8 +60,12 @@ final class ConsoleObjectConfigurationParser
 			return null;
 		}
 
-		if (method_exists($object, 'validate')) {
-			$object->validate();
+		if ($arguments instanceof DefaultValuesProviderInterface) {
+			$this->processDefaultValues($arguments, $arguments->provideDefaultValues());
+		}
+
+		if ($arguments instanceof ValidateObjectInterface) {
+			$arguments->validate();
 		}
 
 		return $arguments;
@@ -146,10 +152,15 @@ final class ConsoleObjectConfigurationParser
 		$reflection = new ReflectionClass($this->className);
 
 		$commandResult = new CommandResult();
+		$commandResult->reflection = $reflection;
 		$commandResult->description = $this->getDescription($reflection);
 
 		foreach ($reflection->getProperties() as $property) {
 			if (!$property->isPublic()) {
+				continue;
+			}
+
+			if (str_starts_with($property->getName(), '_')) {
 				continue;
 			}
 
@@ -226,6 +237,19 @@ final class ConsoleObjectConfigurationParser
 	private function hasAttribute(ReflectionClass|ReflectionProperty $reflection, string $attributeName): bool
 	{
 		return (bool) $reflection->getAttributes($attributeName);
+	}
+
+	private function processDefaultValues(object $object, iterable $defaults): void
+	{
+		$command = $this->getCommandResult();
+
+		foreach ($defaults as $key => $value) {
+			$property = $command->reflection->getProperty($key);
+
+			if ($property->isPublic() && $property->getDefaultValue() === $property->getValue($object)) {
+				$property->setValue($object, $value);
+			}
+		}
 	}
 
 }
