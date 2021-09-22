@@ -48,6 +48,10 @@ abstract class BaseCommand extends Command
 		$this->getParser()->configure($this);
 	}
 
+	protected function startup(): void
+	{
+	}
+
 	final protected function execute(InputInterface $input, OutputInterface $output): int
 	{
 		$arguments = $this->getParser()->hydrate($input, $output);
@@ -61,6 +65,8 @@ abstract class BaseCommand extends Command
 
 		$this->input = $input;
 		$this->output = $output;
+
+		$this->startup();
 
 		try {
 			$this->exec();
