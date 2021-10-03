@@ -43,7 +43,7 @@ abstract class BaseCommand extends Command
 		return $type->getName();
 	}
 
-	final protected function configure()
+	protected function configure()
 	{
 		$this->getParser()->configure($this);
 	}

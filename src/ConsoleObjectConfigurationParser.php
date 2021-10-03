@@ -5,6 +5,7 @@ namespace WebChemistry\ConsoleArguments;
 use WebChemistry\ConsoleArguments\Attribute\Argument;
 use WebChemistry\ConsoleArguments\Attribute\DefaultProvider;
 use WebChemistry\ConsoleArguments\Attribute\Description;
+use WebChemistry\ConsoleArguments\Attribute\Shortcut;
 use WebChemistry\ConsoleArguments\Extension\DefaultValuesProviderInterface;
 use WebChemistry\ConsoleArguments\Extension\ValidateObjectInterface;
 use WebChemistry\ConsoleArguments\Result\CommandResult;
@@ -81,7 +82,7 @@ final class ConsoleObjectConfigurationParser
 			if (!$option->argument) {
 				$command->addOption(
 					$option->name,
-					null,
+					$option->shortcut,
 					$option->getOptionMode(),
 					(string) $option->description,
 					$option->getDefault(),
@@ -188,6 +189,7 @@ final class ConsoleObjectConfigurationParser
 			$option->type = $type->getName();
 			$option->allowsNull = $type->allowsNull();
 			$option->argument = $this->hasAttribute($property, Argument::class);
+			$option->shortcut = $this->getAttribute($property, Shortcut::class)?->shortcut;
 		}
 
 		return $commandResult;

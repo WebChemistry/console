@@ -14,13 +14,15 @@ final class OptionResult
 	public string $property;
 
 	public ?string $description = null;
+	
+	public ?string $shortcut = null;
 
 	public mixed $default;
 
 	public string $type;
 
 	public bool $allowsNull;
-
+	
 	public bool $argument = false;
 
 	public function isset(InputInterface $input): bool
