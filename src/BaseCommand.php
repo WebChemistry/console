@@ -86,6 +86,16 @@ abstract class BaseCommand extends Command
 		throw new TerminateCommandException();
 	}
 
+	public function getInput(): InputInterface
+	{
+		return $this->input;
+	}
+
+	public function getOutput(): OutputInterface
+	{
+		return $this->output;
+	}
+
 	abstract protected function exec();
 
 }
