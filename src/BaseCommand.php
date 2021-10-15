@@ -69,7 +69,12 @@ abstract class BaseCommand extends Command
 		$this->startup();
 
 		try {
-			$this->exec();
+			$returned = $this->exec();
+			
+			if (is_int($returned)) {
+				return $returned;
+			}
+
 		} catch (TerminateCommandException $e) {
 			return $e->success ? self::SUCCESS : self::FAILURE;
 		} finally {

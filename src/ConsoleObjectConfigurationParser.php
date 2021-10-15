@@ -21,21 +21,26 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use WebChemistry\ConsoleArguments\Validator\ValidatorAccessor;
 
 final class ConsoleObjectConfigurationParser
 {
 
 	private CommandResult $commandResult;
+	
+	private ValidatorAccessor $validator;
 
 	public function __construct(
 		private string $className,
 	)
 	{
+		$this->validator = new ValidatorAccessor();
 	}
 
 	public function hydrate(InputInterface $input, OutputInterface $output): ?object
 	{
-		$object = (new ReflectionClass($this->className))->newInstanceWithoutConstructor();
+		$reflection = new ReflectionClass($this->className);
+		$object = $reflection->newInstanceWithoutConstructor();
 		$result = $this->getCommandResult();
 
 		try {
@@ -68,6 +73,8 @@ final class ConsoleObjectConfigurationParser
 		if ($arguments instanceof ValidateObjectInterface) {
 			$arguments->validate();
 		}
+
+		$this->validator->validateThrowOnError($arguments);
 
 		return $arguments;
 	}
