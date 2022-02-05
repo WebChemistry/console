@@ -83,7 +83,7 @@ final class ConsoleObjectConfigurationParser
 	{
 		$result = $this->getCommandResult();
 
-		$command->setDescription((string) $result->description);
+		$command->setDescription((string) ($result->description ?? $this->getDescription(new ReflectionClass($command))));
 
 		foreach ($result->options as $option) {
 			if (!$option->argument) {
