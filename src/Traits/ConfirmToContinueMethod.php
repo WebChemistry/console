@@ -8,7 +8,7 @@ use WebChemistry\ConsoleArguments\TerminateCommandException;
 trait ConfirmToContinueMethod
 {
 
-	protected function confirmToContinue(bool $default = false): void
+	protected function confirmToContinue(bool $default = false, string $message = 'Continue with this action?'): void
 	{
 		$helper = $this->getHelper('question');
 		$defaultTxt = $this->output->getFormatter()->format(sprintf('<comment>[%s]</comment>', $default ? 'yes' : 'no'));
@@ -17,7 +17,7 @@ trait ConfirmToContinueMethod
 			$this->input,
 			$this->output,
 			new ConfirmationQuestion(
-				sprintf('%s %s ', 'Continue with this action?', $defaultTxt),
+				sprintf('%s %s ', $message, $defaultTxt),
 				$default
 			),
 		);
