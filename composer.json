@@ -2,14 +2,13 @@
 	"name": "webchemistry/console",
 	"require": {
 		"php": ">=8.0",
-		"symfony/console": "^6.0"
+		"symfony/console": "^6.0",
+		"symfony/validator": "^6.0",
+		"nette/schema": "^1.2"
 	},
 	"autoload": {
 		"psr-4": {
 			"WebChemistry\\Console\\": "src"
 		}
-	},
-	"require-dev": {
-		"symfony/validator": "^6.0"
 	}
 }
