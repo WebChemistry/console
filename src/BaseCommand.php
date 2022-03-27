@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace WebChemistry\ConsoleArguments;
+namespace WebChemistry\Console;
 
 use LogicException;
 use ReflectionNamedType;
@@ -84,6 +84,9 @@ abstract class BaseCommand extends Command
 		return self::SUCCESS;
 	}
 
+	/**
+	 * @never
+	 */
 	protected function error(string $message): void
 	{
 		$this->output->writeln(sprintf('<error>Error: %s</error>', $message));

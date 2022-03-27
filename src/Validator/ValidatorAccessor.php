@@ -1,12 +1,12 @@
 <?php declare(strict_types = 1);
 
-namespace WebChemistry\ConsoleArguments\Validator;
+namespace WebChemistry\Console\Validator;
 
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use WebChemistry\ConsoleArguments\Exceptions\ValidationException;
+use WebChemistry\Console\Exceptions\ValidationException;
 
 final class ValidatorAccessor
 {

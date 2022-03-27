@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace WebChemistry\ConsoleArguments\Exceptions;
+namespace WebChemistry\Console\Exceptions;
 
 use Exception;
 

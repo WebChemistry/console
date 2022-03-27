@@ -1,9 +1,9 @@
 <?php declare(strict_types = 1);
 
-namespace WebChemistry\ConsoleArguments\Traits;
+namespace WebChemistry\Console\Traits;
 
 use Symfony\Component\Console\Question\ConfirmationQuestion;
-use WebChemistry\ConsoleArguments\TerminateCommandException;
+use WebChemistry\Console\TerminateCommandException;
 
 trait ConfirmToContinueMethod
 {

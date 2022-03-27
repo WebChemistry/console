@@ -1,15 +1,15 @@
 <?php declare(strict_types = 1);
 
-namespace WebChemistry\ConsoleArguments;
+namespace WebChemistry\Console;
 
-use WebChemistry\ConsoleArguments\Attribute\Argument;
-use WebChemistry\ConsoleArguments\Attribute\DefaultProvider;
-use WebChemistry\ConsoleArguments\Attribute\Description;
-use WebChemistry\ConsoleArguments\Attribute\Shortcut;
-use WebChemistry\ConsoleArguments\Extension\DefaultValuesProviderInterface;
-use WebChemistry\ConsoleArguments\Extension\ValidateObjectInterface;
-use WebChemistry\ConsoleArguments\Result\CommandResult;
-use WebChemistry\ConsoleArguments\Result\OptionResult;
+use WebChemistry\Console\Attribute\Argument;
+use WebChemistry\Console\Attribute\DefaultProvider;
+use WebChemistry\Console\Attribute\Description;
+use WebChemistry\Console\Attribute\Shortcut;
+use WebChemistry\Console\Extension\DefaultValuesProviderInterface;
+use WebChemistry\Console\Extension\ValidateObjectInterface;
+use WebChemistry\Console\Result\CommandResult;
+use WebChemistry\Console\Result\OptionResult;
 use LogicException;
 use Nette\Schema\Expect;
 use Nette\Schema\Processor;
@@ -21,7 +21,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use WebChemistry\ConsoleArguments\Validator\ValidatorAccessor;
+use WebChemistry\Console\Validator\ValidatorAccessor;
 
 final class ConsoleObjectConfigurationParser
 {
