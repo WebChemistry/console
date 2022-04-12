@@ -2,6 +2,7 @@
 
 namespace WebChemistry\Console\Util;
 
+use Nette\Utils\Strings;
 use WebChemistry\Console\Util\Result\ArrayResult;
 use WebChemistry\Console\Util\Result\StreamResult;
 use WebChemistry\Console\Util\Result\StringResult;
@@ -42,7 +43,7 @@ final class CommandLine
 	private static function formatCommand(string $command, array $arguments): string
 	{
 		return sprintf(
-			$command,
+			strtr($command, ['%' => '%%', '??' => '?', '?' => '%s']),
 			...array_map(fn (string|int|float|null $arg) => escapeshellarg((string) $arg), $arguments)
 		);
 	}
