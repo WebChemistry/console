@@ -3,7 +3,7 @@
 	"require": {
 		"php": ">=8.0",
 		"symfony/console": "^5.4 || ^6.0",
-		"symfony/validator": "^6.0",
+		"symfony/validator": "^5.4 || ^6.0",
 		"nette/schema": "^1.2"
 	},
 	"autoload": {
