@@ -2,14 +2,6 @@
 
 namespace WebChemistry\Console;
 
-use WebChemistry\Console\Attribute\Argument;
-use WebChemistry\Console\Attribute\DefaultProvider;
-use WebChemistry\Console\Attribute\Description;
-use WebChemistry\Console\Attribute\Shortcut;
-use WebChemistry\Console\Extension\DefaultValuesProviderInterface;
-use WebChemistry\Console\Extension\ValidateObjectInterface;
-use WebChemistry\Console\Result\CommandResult;
-use WebChemistry\Console\Result\OptionResult;
 use LogicException;
 use Nette\Schema\Expect;
 use Nette\Schema\Processor;
@@ -19,22 +11,38 @@ use ReflectionProperty;
 use ReflectionUnionType;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use WebChemistry\Console\Validator\ValidatorAccessor;
+use Symfony\Component\Validator\Validator\ValidatorInterface as SymfonyValidatorInterface;
+use WebChemistry\Console\Attribute\Argument;
+use WebChemistry\Console\Attribute\DefaultProvider;
+use WebChemistry\Console\Attribute\Description;
+use WebChemistry\Console\Attribute\Shortcut;
+use WebChemistry\Console\Extension\DefaultValuesProviderInterface;
+use WebChemistry\Console\Extension\ValidateObjectInterface;
+use WebChemistry\Console\Result\CommandResult;
+use WebChemistry\Console\Result\OptionResult;
+use WebChemistry\Console\Validator\SymfonyValidator;
+use WebChemistry\Console\Validator\ValidatorInterface;
+use WebChemistry\Console\Validator\VoidValidator;
 
-final class ConsoleObjectConfigurationParser
+final class CommandArgumentsParser
 {
 
 	private CommandResult $commandResult;
 	
-	private ValidatorAccessor $validator;
+	private ValidatorInterface $validator;
 
 	public function __construct(
 		private string $className,
+		?ValidatorInterface $validator = null,
 	)
 	{
-		$this->validator = new ValidatorAccessor();
+		$this->validator = $validator ?? $this->createValidator();
+	}
+
+	private function createValidator(): ValidatorInterface
+	{
+		return interface_exists(SymfonyValidatorInterface::class) ? new SymfonyValidator() : new VoidValidator();
 	}
 
 	public function hydrate(InputInterface $input, OutputInterface $output): ?object
@@ -58,7 +66,7 @@ final class ConsoleObjectConfigurationParser
 						$option->argument ? 'Argument ' : 'Option --',
 						$option->name,
 						$object->variables['expected'],
-						(string) $object->variables['value'],
+						$object->variables['value'],
 					)
 				);
 			}
@@ -74,7 +82,7 @@ final class ConsoleObjectConfigurationParser
 			$arguments->validate();
 		}
 
-		$this->validator->validateThrowOnError($arguments);
+		$this->validator->validate($arguments);
 
 		return $arguments;
 	}

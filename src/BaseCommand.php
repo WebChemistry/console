@@ -12,15 +12,15 @@ use Symfony\Component\Console\Output\OutputInterface;
 abstract class BaseCommand extends Command
 {
 
-	private ConsoleObjectConfigurationParser $_parser;
+	private CommandArgumentsParser $_parser;
 
 	protected OutputInterface $output;
 
 	protected InputInterface $input;
 
-	private function getParser(): ConsoleObjectConfigurationParser
+	private function getParser(): CommandArgumentsParser
 	{
-		return $this->_parser ??= new ConsoleObjectConfigurationParser($this->getClassName());
+		return $this->_parser ??= new CommandArgumentsParser($this->getClassName());
 	}
 
 	private function getClassName(): string
@@ -30,6 +30,7 @@ abstract class BaseCommand extends Command
 		}
 
 		$reflection = new ReflectionProperty(static::class, 'arguments');
+
 		if ($reflection->isPrivate()) {
 			throw new LogicException(sprintf('%s::$arguments must not be private.', static::class));
 		}
