@@ -24,6 +24,9 @@ final class OptionResult
 	public bool $allowsNull;
 	
 	public bool $argument = false;
+	
+	/** @var callable|null */
+	public $getter = null;
 
 	public function isset(InputInterface $input): bool
 	{
@@ -32,7 +35,13 @@ final class OptionResult
 
 	public function get(InputInterface $input): mixed
 	{
-		return $this->argument ? $input->getArgument($this->name) : $input->getOption($this->name);
+		$value = $this->argument ? $input->getArgument($this->name) : $input->getOption($this->name);
+	
+		if (is_callable($this->getter)) {
+			$value = ($this->getter)($value);
+		}
+		
+		return $value;
 	}
 
 	public function getDefault(): mixed

@@ -4,12 +4,13 @@ namespace WebChemistry\Console\Attribute;
 
 use Attribute;
 
-#[Attribute(Attribute::TARGET_PROPERTY)]
-final class DefaultProvider
+#[Attribute]
+class Configuration
 {
 	
 	public function __construct(
-		public string $method,
+		public ?string $getterCallback = null,
+		public ?string $descriptionCallback = null,
 	)
 	{
 	}

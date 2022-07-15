@@ -14,9 +14,10 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface as SymfonyValidatorInterface;
 use WebChemistry\Console\Attribute\Argument;
-use WebChemistry\Console\Attribute\DefaultProvider;
+use WebChemistry\Console\Attribute\Configuration;
 use WebChemistry\Console\Attribute\Description;
 use WebChemistry\Console\Attribute\Shortcut;
+use WebChemistry\Console\Exceptions\MismatchTypeException;
 use WebChemistry\Console\Extension\DefaultValuesProviderInterface;
 use WebChemistry\Console\Extension\ValidateObjectInterface;
 use WebChemistry\Console\Result\CommandResult;
@@ -31,6 +32,10 @@ final class CommandArgumentsParser
 	private CommandResult $commandResult;
 	
 	private ValidatorInterface $validator;
+	
+	private OutputInterface $output;
+	
+	private bool $earlyError = false;
 
 	public function __construct(
 		private string $className,
@@ -48,6 +53,10 @@ final class CommandArgumentsParser
 	public function hydrate(InputInterface $input, OutputInterface $output): ?object
 	{
 		$reflection = new ReflectionClass($this->className);
+		
+		$this->output = $output;
+		$this->earlyError = false;
+		
 		$object = $reflection->newInstanceWithoutConstructor();
 		$result = $this->getCommandResult();
 
@@ -60,17 +69,19 @@ final class CommandArgumentsParser
 			foreach ($exception->getMessageObjects() as $object) {
 				$name = $object->path[0];
 				$option = $result->options[$name];
-				$output->writeln(
-					sprintf(
-						'<error>%s%s expects to be %s, %s given.</error>',
-						$option->argument ? 'Argument ' : 'Option --',
-						$option->name,
-						$object->variables['expected'],
-						$object->variables['value'],
-					)
+				
+				$this->printTypeError(
+					$option->argument,
+					$option->name,
+					$object->variables['expected'],
+					get_debug_type($object->variables['value'])
 				);
 			}
 
+			return null;
+		}
+		
+		if ($this->earlyError) {
 			return null;
 		}
 
@@ -85,6 +96,19 @@ final class CommandArgumentsParser
 		$this->validator->validate($arguments);
 
 		return $arguments;
+	}
+
+	private function printTypeError(bool $isArgument, string $name, string $expected, string $given): void
+	{
+		$this->output->writeln(
+			sprintf(
+				'<error>%s%s expects to be "%s", "%s" given.</error>',
+				$isArgument ? 'Argument ' : 'Option --',
+				$name,
+				$expected,
+				$given,
+			)
+		);
 	}
 
 	public function configure(Command $command): void
@@ -123,7 +147,18 @@ final class CommandArgumentsParser
 
 		foreach ($result->options as $option) {
 			if ($option->isset($input)) {
-				$values[$option->property] = $option->get($input);
+				try {
+					$values[$option->property] = $option->get($input);
+				} catch (MismatchTypeException $exception) {
+					$this->printTypeError(
+						$option->argument,
+						$option->name,
+						$exception->expected,
+						$exception->given,
+					);
+					
+					$this->earlyError = true;
+				}
 			}
 		}
 
@@ -198,40 +233,52 @@ final class CommandArgumentsParser
 				fn (array $matches) => '-' . strtolower($matches[1]),
 				$property->getName(),
 			);
-			$option->description = $this->getDescription($property);
+			
 			$option->property = $property->getName();
-			$option->default = $this->getDefaultValue($property);
 			$option->type = $type->getName();
 			$option->allowsNull = $type->allowsNull();
-			$option->argument = $this->hasAttribute($property, Argument::class);
-			$option->shortcut = $this->getAttribute($property, Shortcut::class)?->shortcut;
+			$option->default = $property->hasDefaultValue() ? $property->getDefaultValue() : null;
+			
+			foreach ($property->getAttributes() as $attribute) {
+				$instance = $attribute->newInstance();
+				
+				if ($instance instanceof Description) {
+					$option->description = $instance->description;
+				} elseif ($instance instanceof Argument) {
+					$option->argument = true;
+				} elseif ($instance instanceof Shortcut) {
+					$option->shortcut = $instance->shortcut;
+				} elseif ($instance instanceof Configuration) {
+					$option->getter = $this->createCallback($instance->getterCallback, $instance);
+					
+					if (!$option->description) {
+						$callback = $this->createCallback($instance->descriptionCallback, $instance);
+						
+						if ($callback) {
+							$option->description = $callback();	
+						}
+					}
+				}
+			}
 		}
 
 		return $commandResult;
 	}
 
-	private function getDefaultValue(ReflectionProperty $property): mixed
+	private function createCallback(?string $callback, Configuration $instance): ?callable
 	{
-		$default = $this->getAttribute($property, DefaultProvider::class);
-		if ($default) {
-			$class = $property->getDeclaringClass();
-			if (!$class->hasMethod($default->method)) {
-				throw new LogicException(
-					sprintf('%s::%s() method does not exist.', $class->getName(), $default->method)
-				);
-			}
-
-			$method = $class->getMethod($default->method);
-			if (!$method->isStatic() || !$method->isPublic()) {
-				throw new LogicException(
-					sprintf('%s::%s() method must be static and public.', $class->getName(), $default->method)
-				);
-			}
-
-			return $method->invoke(null);
+		if (!$callback) {
+			return null;
 		}
+		
+		if (str_contains($callback, '::')) {
+			return $callback;
+		} else {
+			$class = new ReflectionClass($instance);
+			$method = $class->getMethod($callback);
 
-		return $property->hasDefaultValue() ? $property->getDefaultValue() : null;
+			return $method->getClosure($instance);
+		}
 	}
 
 	private function getDescription(ReflectionClass|ReflectionProperty $reflection): ?string
@@ -249,11 +296,6 @@ final class CommandArgumentsParser
 		$attrs = $reflection->getAttributes($attributeName);
 
 		return $attrs ? $attrs[0]->newInstance() : null;
-	}
-
-	private function hasAttribute(ReflectionClass|ReflectionProperty $reflection, string $attributeName): bool
-	{
-		return (bool) $reflection->getAttributes($attributeName);
 	}
 
 	private function processDefaultValues(object $object, iterable $defaults): void
